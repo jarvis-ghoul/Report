@@ -23,6 +23,65 @@
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
     --transition-fast: all 0.2s ease-in-out;
     --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Semantic properties for light/dark mode */
+    --card-bg: #ffffff;
+    --sub-card-bg: #fafbfd;
+    --input-bg: #ffffff;
+    --text-contrast: #111827;
+}
+
+/* Dark Mode Theme overrides */
+body.dark-mode {
+    --primary-color: #ffffff;
+    --primary-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    --bg-color: #0b0f19;
+    --panel-bg: rgba(17, 24, 39, 0.85);
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border-color: #1f2937;
+    --border-highlight: #374151;
+    --yellow-input: #201e12;
+    --yellow-border: #8c6d1d;
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.45), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+    
+    --card-bg: #111827;
+    --sub-card-bg: #1e293b;
+    --input-bg: #1f2937;
+    --text-contrast: #ffffff;
+}
+
+body.dark-mode .panel,
+body.dark-mode .guide-panel {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .key-card.highlight-yellow-card {
+    background-color: #1a180e;
+    border-color: #b45309;
+}
+
+body.dark-mode .btn-download-excel {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .personal-container .admin-section {
+    border-color: var(--border-color);
+}
+
+/* Force crisp white text inside inputs, selects, and textareas in dark mode */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    color: #ffffff !important;
+}
+
+/* Ensure placeholder is visible and styled professionally */
+body.dark-mode ::placeholder {
+    color: #9ca3af !important;
+    opacity: 0.8;
 }
 
 /* Reset and Base Styles */
@@ -143,6 +202,26 @@ h1, h2, h3, h4, .logo-text {
     background-color: #38a169;
     transform: translateY(-1px);
     box-shadow: 0 6px 15px rgba(72, 187, 120, 0.4);
+}
+
+.btn-toggle-dark {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: var(--transition-fast);
+}
+
+.btn-toggle-dark:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
 }
 
 .btn-secondary {
@@ -322,12 +401,21 @@ h1, h2, h3, h4, .logo-text {
 }
 
 .form-group label {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
     color: var(--primary-color);
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.form-group label i {
+    margin-right: 6px;
+    color: var(--accent-color);
+}
+
+.form-row .form-group label,
+.admin-grid .form-group label {
+    min-height: 36px;
 }
 
 .form-group input, 
@@ -338,7 +426,7 @@ h1, h2, h3, h4, .logo-text {
     border-radius: 8px;
     font-size: 14px;
     color: var(--text-main);
-    background-color: white;
+    background-color: var(--input-bg);
     transition: var(--transition-fast);
 }
 
@@ -376,8 +464,8 @@ h1, h2, h3, h4, .logo-text {
 }
 
 .key-card {
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 16px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -387,55 +475,47 @@ h1, h2, h3, h4, .logo-text {
 }
 
 .key-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
+    display: none; /* disabled in favor of native border-left for rounded corners */
 }
 
 .key-card.primary {
-    background-color: #fff5f5;
-    border: 1px solid #fed7d7;
-}
-
-.key-card.primary::before {
-    background-color: var(--primary-light);
+    background-color: #fff8f8;
+    border: 1.5px solid #fed7d7;
+    border-left: 6px solid var(--accent-color);
 }
 
 .key-card.success {
-    background-color: #f0fff4;
-    border: 1px solid #c6f6d5;
-}
-
-.key-card.success::before {
-    background-color: var(--accent-green);
+    background-color: #f6fdf9;
+    border: 1.5px solid #c6f6d5;
+    border-left: 6px solid var(--accent-green);
 }
 
 .card-label {
-    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12.5px;
     font-weight: 700;
-    color: var(--text-muted);
+    color: #4b5563;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .card-value {
     font-family: 'Outfit', sans-serif;
-    font-size: 22px;
+    font-size: 28px;
     font-weight: 800;
-    color: var(--primary-color);
+    color: var(--text-contrast);
+    margin-top: 4px;
+    margin-bottom: 2px;
 }
 
 .key-card.success .card-value {
-    color: #276749;
+    color: #1b5e20;
 }
 
 .card-subvalue {
-    font-size: 13px;
+    font-size: 14.5px;
     font-weight: 600;
-    color: var(--text-muted);
+    color: #4b5563;
 }
 
 /* Breakdown Detail Items */
@@ -604,7 +684,8 @@ h1, h2, h3, h4, .logo-text {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 12.5px;
-    background-color: white;
+    background-color: var(--input-bg);
+    color: var(--text-main);
     transition: var(--transition-fast);
 }
 
@@ -655,6 +736,9 @@ input.num-input {
     }
     .chart-card {
         grid-column: span 1;
+    }
+    .key-results {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -798,7 +882,7 @@ input.num-input {
 }
 
 .guide-card {
-    background-color: #fafbfd;
+    background-color: var(--sub-card-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
@@ -902,3 +986,924 @@ input.num-input {
     max-width: 900px;
     margin: 0 auto;
 }
+
+/* ==========================================================================
+   Personal MSI Tariff Admin Tab Styles
+   ========================================================================== */
+.personal-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.panel-admin-inputs {
+    background-color: var(--panel-bg);
+}
+
+.panel-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.admin-section {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-soft);
+    transition: var(--transition-fast);
+}
+
+.admin-section:hover {
+    border-color: var(--border-highlight);
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-1px);
+}
+
+.admin-form .admin-section:nth-of-type(1) { border-left: 4px solid #3182ce; }
+.admin-form .admin-section:nth-of-type(2) { border-left: 4px solid #e53e3e; }
+.admin-form .admin-section:nth-of-type(3) { border-left: 4px solid #319795; }
+.admin-form .admin-section:nth-of-type(4) { border-left: 4px solid #d69e2e; }
+
+.admin-section h3 {
+    font-size: 15px;
+    color: var(--primary-color);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1.5px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.admin-section h3 i {
+    color: inherit;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+}
+
+/* Yellow Inputs style for editable rates */
+.admin-yellow input, 
+.admin-yellow select {
+    background-color: var(--yellow-input) !important;
+    border-color: var(--yellow-border) !important;
+    font-weight: 600;
+}
+
+.admin-yellow input:focus, 
+.admin-yellow select:focus {
+    border-color: #d69e2e !important;
+    box-shadow: 0 0 0 3px rgba(236, 201, 75, 0.2) !important;
+}
+
+.help-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.admin-note {
+    background-color: #fffaf0;
+    border: 1px solid #feebc8;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    color: #c05621;
+    font-size: 12.5px;
+}
+
+.admin-note i {
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+/* Detail Breakdown Items Custom styles */
+.detail-item.separator-top {
+    border-top: 1px dashed var(--border-color);
+    padding-top: 10px;
+    margin-top: 4px;
+}
+
+.detail-item.highlight-services {
+    font-weight: 700;
+    color: var(--primary-light);
+    border-bottom: 1.5px solid var(--border-color);
+    background-color: rgba(229, 62, 62, 0.03);
+    padding: 6px 8px;
+    border-radius: 6px;
+}
+
+/* Key Results Custom styles */
+.key-card.highlight-yellow-card {
+    grid-column: span 2;
+    background-color: #fffdf0;
+    border: 1.5px solid #fef08a;
+    border-left: 6px solid #ecc94b;
+}
+
+/* Yellow Card Stretched Content Layout */
+.yellow-card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 20px;
+}
+
+.yellow-card-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.yellow-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 210px;
+}
+
+.yellow-card-right .btn-card-pdf {
+    margin-top: 0;
+    width: 100%;
+}
+
+.text-blue {
+    color: #2b6cb0 !important;
+}
+
+body.dark-mode .text-blue {
+    color: #63b3ed !important;
+}
+
+.text-green {
+    color: #1b5e20 !important;
+}
+
+body.dark-mode .text-green {
+    color: #38a169 !important;
+}
+
+.text-crimson {
+    color: var(--primary-light) !important;
+}
+
+.font-large {
+    font-size: 28px !important;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+/* Dark Mode card color overrides for Landed Unit Cost & Suggested Price */
+body.dark-mode .key-card.primary {
+    background-color: #241212 !important;
+    border: 1.5px solid #742a2a !important;
+    border-left: 6px solid #ef4444 !important;
+}
+
+body.dark-mode .key-card.success {
+    background-color: #0c2016 !important;
+    border: 1.5px solid #22543d !important;
+    border-left: 6px solid #10b981 !important;
+}
+
+body.dark-mode .key-card.highlight-yellow-card {
+    background-color: #1a180e !important;
+    border: 1.5px solid #8c6d1d !important;
+    border-left: 6px solid #eab308 !important;
+}
+
+@media (max-width: 480px) {
+    .yellow-card-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .yellow-card-right {
+        align-items: flex-start;
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   Results Dashboard and Grid Reorganization
+   ========================================================================== */
+.results-dashboard-row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+@media (max-width: 600px) {
+    .results-dashboard-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pills-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chart-column {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Horizontal pill style */
+.summary-pill {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-soft);
+    transition: var(--transition-fast);
+}
+
+.summary-pill:hover {
+    transform: translateX(4px);
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-medium);
+}
+
+.summary-pill .pill-text-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.pill-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pill-note {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 1px;
+}
+
+.pill-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--primary-color);
+}
+
+/* Cost Breakdown Grid */
+.breakdown-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .breakdown-grid-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.breakdown-section {
+    background-color: var(--sub-card-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: var(--transition-fast);
+}
+
+.breakdown-section:hover {
+    border-color: var(--border-highlight);
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-1px);
+}
+
+.breakdown-grid-container .breakdown-section:nth-of-type(1) {
+    border-left-color: var(--accent-color);
+}
+
+.breakdown-section h3 {
+    font-size: 13.5px;
+    color: var(--primary-color);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breakdown-details-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-section-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: var(--transition-fast);
+}
+
+.calc-form .form-section-card:nth-of-type(2) {
+    border-left-color: var(--accent-color);
+}
+
+.form-section-card:hover {
+    border-color: var(--border-highlight);
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-1px);
+}
+
+.form-section-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1.5px solid var(--border-color);
+    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+/* Three columns layout for forms */
+.form-row.three-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .form-row.three-cols {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+/* ==========================================================================
+   Print and PDF Styles (MSI Corporate Proforma)
+   ========================================================================== */
+
+/* Hide by default on web browser screen */
+.print-only {
+    display: none;
+}
+
+/* Button styles for PDF trigger */
+.btn-download-pdf {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+}
+
+.btn-download-pdf:hover {
+    background-color: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(220, 38, 38, 0.35);
+}
+
+.btn-card-pdf {
+    margin-top: 12px;
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    box-shadow: 0 3px 8px rgba(220, 38, 38, 0.2);
+}
+
+.btn-card-pdf:hover {
+    background-color: #b91c1c;
+    box-shadow: 0 5px 12px rgba(220, 38, 38, 0.3);
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 5mm 7mm;
+    }
+
+    /* Hide everything on screen */
+    html, body {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        font-family: 'Inter', Arial, sans-serif !important;
+        font-size: 7.8pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    .app-header, 
+    .container, 
+    .app-footer, 
+    .client-note, 
+    .hero, 
+    .tabs-container, 
+    .calculator-grid {
+        display: none !important;
+    }
+
+    /* Show print container */
+    .print-only {
+        display: block !important;
+    }
+
+    #printableProforma {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 2mm 4mm 8mm 4mm !important;
+        background: white !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        min-height: 274mm !important;
+    }
+
+    /* Formats & Layouts */
+    .pdf-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .pdf-logo-area {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .pdf-logo {
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        border: 2px solid #dc2626;
+        object-fit: cover;
+        background-color: white;
+    }
+
+    .pdf-company-info h2 {
+        font-size: 10.5pt;
+        color: #111827;
+        margin: 0 0 2px 0;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+
+    .pdf-company-info p {
+        font-size: 6.8pt;
+        color: #4b5563;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .pdf-quote-badge {
+        background-color: #f9fafb !important;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 4px 8px;
+        text-align: right;
+        min-width: 150px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pdf-quote-badge h3 {
+        font-size: 8.2pt;
+        color: #dc2626;
+        margin: 0 0 2px 0;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .pdf-quote-badge .badge-row {
+        font-size: 6.8pt;
+        color: #374151;
+        margin-bottom: 0px;
+    }
+
+    .pdf-divider {
+        border: 0;
+        height: 1.2px;
+        background-color: #dc2626 !important;
+        margin: 4px 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Metadata Info Section */
+    .pdf-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .pdf-meta-col {
+        background-color: #f9fafb !important;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 4px 7px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pdf-meta-col h4 {
+        font-size: 7.8pt;
+        color: #111827;
+        border-bottom: 1.2px solid #dc2626;
+        padding-bottom: 2px;
+        margin: 0 0 3px 0;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+    .pdf-meta-col table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .pdf-meta-col td {
+        font-size: 7.2pt;
+        padding: 1px 0;
+        vertical-align: top;
+        color: #374151;
+    }
+
+    .pdf-meta-col td.lbl {
+        width: 82px;
+        color: #6b7280;
+        font-weight: 600;
+    }
+
+    /* Side by Side Cost Tables */
+    .pdf-tables-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .pdf-table-wrapper {
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 5px;
+        background-color: #ffffff;
+    }
+
+    .pdf-table-wrapper h4 {
+        font-size: 7.8pt;
+        color: #111827;
+        margin: 0 0 3px 0;
+        border-bottom: 1.5px solid #dc2626;
+        padding-bottom: 2px;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+    .pdf-data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .pdf-data-table th {
+        font-size: 6.8pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #4b5563;
+        border-bottom: 1.5px solid #e5e7eb;
+        padding: 3px 2px;
+        text-align: left;
+    }
+
+    .pdf-data-table td {
+        font-size: 6.8pt;
+        padding: 2px 2px !important;
+        border-bottom: 1px solid #f3f4f6;
+        color: #374151;
+    }
+
+    .pdf-data-table tr.highlight-row {
+        background-color: #fef2f2 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pdf-data-table tr.pdf-table-subtitle-row td {
+        background-color: #f3f4f6 !important;
+        color: #111827 !important;
+        font-size: 6.8pt !important;
+        font-weight: 700 !important;
+        padding: 2.5px 3px !important;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        border-top: 1px solid #d1d5db !important;
+        border-bottom: 1px solid #d1d5db !important;
+        text-align: left !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pdf-data-table tr.total-row td {
+        border-top: 1.5px solid #d1d5db;
+        border-bottom: none;
+        font-size: 7.4pt;
+        font-weight: 700;
+        padding: 3px 2px;
+        background-color: #f9fafb !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .txt-right {
+        text-align: right !important;
+    }
+
+    /* Grand Summary Boxes */
+    .pdf-summary-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    .pdf-summary-container .summary-card {
+        background-color: #f9fafb !important;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 4px 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pdf-summary-container .summary-card .lbl {
+        font-size: 6.4pt;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .pdf-summary-container .summary-card .val {
+        font-size: 8.2pt;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .pdf-summary-container .summary-card.grand-total {
+        background-color: #fffdf0 !important;
+        border: 1.5px solid #f59e0b;
+    }
+
+    .pdf-summary-container .summary-card.grand-total .lbl {
+        color: #b45309;
+    }
+
+    .pdf-summary-container .summary-card.grand-total .val-usd {
+        font-size: 10.5pt;
+        font-weight: 800;
+        color: #dc2626;
+    }
+
+    .pdf-summary-container .summary-card.grand-total .val-pen {
+        font-size: 7.8pt;
+        color: #4b5563;
+        font-weight: 700;
+    }
+
+    /* Footer Grid Layout */
+    .pdf-footer-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 8px;
+        margin-top: 4px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .pdf-footer-left {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .pdf-footer-right {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* BCP Bank Account Box (Rounded Dark Blue Border) */
+    .pdf-bank-box {
+        border: 1.5px solid #002d72 !important;
+        border-radius: 8px;
+        padding: 5px 8px;
+        background-color: #ffffff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pdf-bank-box h5 {
+        font-size: 7.8pt;
+        font-weight: 800;
+        color: #002d72;
+        margin: 0 0 1px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        border-bottom: 1px dashed #002d72;
+        padding-bottom: 2px;
+    }
+
+    .pdf-bank-box .bank-subheader {
+        font-size: 6.8pt;
+        font-weight: 700;
+        font-style: italic;
+        color: #002d72;
+        margin: 0 0 1px 0;
+    }
+
+    .bank-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .bank-table td {
+        font-size: 6.4pt !important;
+        padding: 0.8px 0 !important;
+        border: none !important;
+        color: #111827 !important;
+    }
+
+    .bank-table td.lbl {
+        font-weight: 700;
+        color: #111827;
+        width: 45px;
+    }
+
+    .bank-table td.lbl-cci {
+        font-weight: 700;
+        color: #111827;
+        width: 30px;
+        padding-left: 8px !important;
+    }
+
+    .bank-info-line {
+        font-size: 6.8pt !important;
+        margin: 2px 0 0 0 !important;
+        color: #111827 !important;
+        line-height: 1.1;
+    }
+
+    /* Notes and terms */
+    .pdf-notes {
+        background-color: #f9fafb !important;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 4px 8px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pdf-notes p {
+        font-size: 6.8pt;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 1px 0;
+    }
+
+    .pdf-notes ul {
+        margin: 0;
+        padding-left: 12px;
+    }
+
+    .pdf-notes li {
+        font-size: 6.4pt;
+        color: #4b5563;
+        margin-bottom: 1px;
+        line-height: 1.2;
+    }
+
+    /* Signatures Section */
+    .pdf-signatures {
+        display: flex;
+        justify-content: space-around;
+        gap: 10px;
+    }
+
+    .pdf-signatures .signature-box {
+        width: 100px;
+        text-align: center;
+    }
+
+    .pdf-signatures .signature-line {
+        border-top: 1px solid #9ca3af !important;
+        margin-bottom: 4px;
+        height: 1px;
+    }
+
+    .pdf-signatures p {
+        font-size: 6.8pt;
+        margin: 0;
+        color: #374151;
+        line-height: 1.2;
+    }
+
+    /* Watermark Footer */
+    .pdf-footer-watermark {
+        position: absolute;
+        bottom: 5px;
+        left: 4mm;
+        right: 4mm;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 3px;
+    }
+
+    .pdf-footer-watermark p {
+        font-size: 6.4pt;
+        color: #9ca3af;
+        font-style: italic;
+        margin: 0;
+    }
+
+    /* Avoid page breaking issues */
+    .pdf-header, 
+    .pdf-meta-grid, 
+    .pdf-tables-grid, 
+    .pdf-summary-container, 
+    .pdf-footer-grid,
+    .pdf-footer-watermark {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+}
+
+

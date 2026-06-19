@@ -4,55 +4,32 @@
 
 // Global state variables
 let indChartInstance = null;
-let multiChartInstance = null;
-
-// Default products array for multi-product prorating
-let products = [
-    {
-        id: 1,
-        sku: "SKU-9081",
-        description: "Smartphones Android 12",
-        qty: 200,
-        fobUnit: 150.00,
-        pesoUnit: 0.25,
-        volUnit: 0.002,
-        arancel: 0.00,
-        margen: 35
-    },
-    {
-        id: 2,
-        sku: "SKU-4402",
-        description: "Fundas de Silicona TPU",
-        qty: 1500,
-        fobUnit: 1.20,
-        pesoUnit: 0.04,
-        volUnit: 0.0005,
-        arancel: 0.06,
-        margen: 40
-    },
-    {
-        id: 3,
-        sku: "SKU-5211",
-        description: "Cargadores Inalámbricos 15W",
-        qty: 800,
-        fobUnit: 8.50,
-        pesoUnit: 0.12,
-        volUnit: 0.001,
-        arancel: 0.06,
-        margen: 35
-    }
-];
 
 // Document Ready
 document.addEventListener("DOMContentLoaded", () => {
-    // Set up event listeners for Individual Calculator
-    const indInputs = [
-        "indFob", "indCantidad", "indPeso", "indVolumen", 
-        "indTransporte", "indOrigen", "indArancel", "indPercepcion", 
-        "indMargen", "indTipoCambio", "indProducto"
+    // Check Dark Mode preference
+    if (localStorage.getItem("darkMode") === "enabled") {
+        document.body.classList.add("dark-mode");
+        const icon = document.querySelector("#btnToggleDark i");
+        if (icon) icon.className = "fa-solid fa-sun";
+    }
+
+    // Client view input IDs
+    const clientInputIds = [
+        "indCliente", "indProducto", "indValorMercancia", "indPeso", "indVolumen", "indIncoterm", "indTransporte", "indOrigen", "indCantidad", "indMargen"
     ];
     
-    indInputs.forEach(id => {
+    // Admin tariff input IDs
+    const adminInputIds = [
+        "admFleteCbm", "admFleteFcl", "admFleteAereo", "admBlFee", "admPickUp", "admGastosOrigen",
+        "admSeguroComercial", "admDocFee", "admDescargaTn", "admVistoBueno",
+        "admTransporteInterno", "admAlmacenajeVerde", "admVistoBuenoLinea", 
+        "admGateIn", "admDescargaPuerto", "admComisionAduana", "admGastosOperativos",
+        "admArancel", "admPercepcion", "admTipoCambio"
+    ];
+
+    // Bind event listeners to Client inputs
+    clientInputIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener("input", calculateIndividual);
@@ -60,162 +37,356 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Set up event listeners for Prorrateo Calculator
-    const proGlobalInputs = [
-        "proFleteFactura", "proSeguroFactura", "proGastosLocales", 
-        "proMetodoFlete", "proPercepcionTasa", "proTipoCambio"
-    ];
-    
-    proGlobalInputs.forEach(id => {
+    // Bind event listeners to Admin inputs
+    adminInputIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            el.addEventListener("input", calculateProrrateo);
-            el.addEventListener("change", calculateProrrateo);
+            el.addEventListener("input", calculateIndividual);
+            el.addEventListener("change", calculateIndividual);
         }
     });
 
-    // Initialize UI
-    renderProductRows();
+    // Initialize the calculation
     calculateIndividual();
-    calculateProrrateo();
 });
 
 // Tab Switcher
 function switchTab(tabName) {
     // Toggle active buttons
     document.getElementById("tabIndividual").classList.toggle("active", tabName === "individual");
-    document.getElementById("tabProrrateo").classList.toggle("active", tabName === "prorrateo");
+    document.getElementById("tabPersonal").classList.toggle("active", tabName === "personal");
     document.getElementById("tabGuia").classList.toggle("active", tabName === "guia");
 
     // Toggle active content divs
     document.getElementById("contentIndividual").classList.toggle("active", tabName === "individual");
-    document.getElementById("contentProrrateo").classList.toggle("active", tabName === "prorrateo");
+    document.getElementById("contentPersonal").classList.toggle("active", tabName === "personal");
     document.getElementById("contentGuia").classList.toggle("active", tabName === "guia");
     
-    // Recalculate and refresh charts
-    if (tabName === "individual") {
-        calculateIndividual();
-    } else if (tabName === "prorrateo") {
-        calculateProrrateo();
-    }
+    // Recalculate on switch
+    calculateIndividual();
 }
 
 // --------------------------------------------------------------------------
-// INDIVIDUAL CALCULATOR LOGIC
+// INDIVIDUAL CALCULATOR LOGIC (LCL Quotation Engine)
 // --------------------------------------------------------------------------
 function calculateIndividual() {
-    const fob = parseFloat(document.getElementById("indFob").value) || 0;
-    const qty = parseInt(document.getElementById("indCantidad").value) || 1;
-    const peso = parseFloat(document.getElementById("indPeso").value) || 0;
-    const volumen = parseFloat(document.getElementById("indVolumen").value) || 0;
+    // 1. Capture Client Inputs
+    const mercancia = parseFloat(document.getElementById("indValorMercancia").value) || 0;
+    const peso_kg = parseFloat(document.getElementById("indPeso").value) || 0;
+    const cbm = parseFloat(document.getElementById("indVolumen").value) || 0;
+    const incoterm = document.getElementById("indIncoterm").value;
     const transporte = document.getElementById("indTransporte").value;
     const origen = document.getElementById("indOrigen").value;
-    const arancelRate = parseFloat(document.getElementById("indArancel").value) || 0;
-    const percepcionRate = parseFloat(document.getElementById("indPercepcion").value) || 0;
-    const margen = parseFloat(document.getElementById("indMargen").value) || 0;
-    const tc = parseFloat(document.getElementById("indTipoCambio").value) || 3.78;
+    const cantidad = Math.max(parseFloat(document.getElementById("indCantidad").value) || 1, 1);
+    const margen_comercial = parseFloat(document.getElementById("indMargen").value) || 0;
 
-    // 1. Flete Internacional
-    let flete = 0;
-    const tarifaInfoEl = document.getElementById("indTarifaInfo");
-    if (transporte === "maritimo") {
-        if (tarifaInfoEl) {
-            tarifaInfoEl.innerText = "Tarifa: $110.00 / CBM o $130.00 / Ton";
-        }
-        // LCL Maritime: max of (Volumen * 110 USD, Peso/1000 * 130 USD)
-        const fleteVol = volumen * 110;
-        const fletePeso = (peso / 1000) * 130;
-        flete = Math.max(fleteVol, fletePeso);
-    } else {
-        if (tarifaInfoEl) {
-            tarifaInfoEl.innerText = "Tarifa: $4.80 / kg";
-        }
-        // Aéreo: Peso * 4.80 USD
-        flete = peso * 4.80;
-    }
-
-    // Origen Adjustment
-    const origenInfoEl = document.getElementById("indOrigenInfo");
-    if (origen === "europa") {
-        flete *= 1.2;
-        if (origenInfoEl) origenInfoEl.innerText = "Recargo flete: +20% (Tránsito Europa)";
-    } else if (origen === "eeuu") {
-        flete *= 1.1;
-        if (origenInfoEl) origenInfoEl.innerText = "Recargo flete: +10% (Tránsito América)";
-    } else {
-        if (origenInfoEl) origenInfoEl.innerText = "Recargo flete: Ninguno (+0%)";
-    }
-
-    // 2. Seguro (1.5% of FOB + Flete)
-    const seguro = (fob + flete) * 0.015;
-
-    // 3. Valor CIF
-    const cif = fob + flete + seguro;
-
-    // 4. Arancel Ad-Valorem
-    const advalorem = cif * arancelRate;
-
-    // 5. Impuestos (IGV 16% + IPM 2% = 18%)
-    const baseImpuestos = cif + advalorem;
-    const igvIpm = baseImpuestos * 0.18;
-
-    // 6. Gastos Operativos Locales (Brokerage + Fixed Logistical expenses)
-    // Brokerage: 0.5% of CIF, min 200 USD.
-    const comisionAgente = Math.max(200, cif * 0.005);
-    // Sum of fixed expenses: APM/DPW (180) + Almacenaje (150) + Flete Interno (220) + Banco (45) + Admin (80) = 675 USD
-    const gastosFijos = 675;
-    const gastosLocales = comisionAgente + gastosFijos;
-
-    // 7. Percepción del IGV SUNAT (paid on CIF + Arancel + IGV/IPM)
-    const percepcion = (baseImpuestos + igvIpm) * percepcionRate;
-
-    // 8. Costo Total en Almacén (FOB + Flete + Seguro + Arancel + Gastos Locales)
-    // Note: IGV, IPM, and Percepcion are excluded from landed product cost since they are tax credits.
-    const costoAlmacenTotal = cif + advalorem + gastosLocales;
-    const costoUnitarioUsd = costoAlmacenTotal / qty;
-    const costoUnitarioPen = costoUnitarioUsd * tc;
-
-    // 9. Desembolso total de caja (includes tax credits paid at customs)
-    const cajaTotal = costoAlmacenTotal + igvIpm + percepcion;
-
-    // 10. Precio de Venta Sugerido (USD)
-    // Price = Cost / (1 - Margin%)
-    const precioVentaUsd = margen < 100 ? (costoUnitarioUsd / (1 - (margen / 100))) : costoUnitarioUsd;
-    const precioVentaPen = precioVentaUsd * tc;
-
-    // Suggested Consumer Price (includes local IGV 18%)
-    const precioPublicoPen = precioVentaPen * 1.18;
-
-    // 11. Utilidad comercial estimada
-    const utilidadTotal = (precioVentaUsd - costoUnitarioUsd) * qty;
-
-    // Update UI elements
-    document.getElementById("resIndCostoUnitUsd").textContent = formatCurrency(costoUnitarioUsd, "USD");
-    document.getElementById("resIndCostoUnitPen").textContent = formatCurrency(costoUnitarioPen, "PEN");
-    document.getElementById("resIndPrecioVentaUsd").textContent = formatCurrency(precioVentaUsd, "USD");
-    document.getElementById("resIndPrecioVentaPen").textContent = formatCurrency(precioVentaPen, "PEN");
+    // 2. Capture Admin Inputs
+    const flete_tarifa_cbm = parseFloat(document.getElementById("admFleteCbm").value) || 0;
+    const flete_tarifa_fcl = parseFloat(document.getElementById("admFleteFcl").value) || 0;
+    const flete_aereo_rate = parseFloat(document.getElementById("admFleteAereo").value) || 0;
+    const bl_fee = parseFloat(document.getElementById("admBlFee").value) || 0;
+    const pick_up = parseFloat(document.getElementById("admPickUp").value) || 0;
+    const gastos_origen = parseFloat(document.getElementById("admGastosOrigen").value) || 0;
+    const seguro_comercial = parseFloat(document.getElementById("admSeguroComercial").value) || 0;
+    const doc_fee = parseFloat(document.getElementById("admDocFee").value) || 0;
+    const descarga_tarifa_tn = parseFloat(document.getElementById("admDescargaTn").value) || 0;
+    const visto_bueno = parseFloat(document.getElementById("admVistoBueno").value) || 0;
+    const transporte_interno = parseFloat(document.getElementById("admTransporteInterno").value) || 0;
+    const almacenaje_verde = parseFloat(document.getElementById("admAlmacenajeVerde").value) || 0;
+    const visto_bueno_linea = parseFloat(document.getElementById("admVistoBuenoLinea").value) || 0;
+    const gate_in = parseFloat(document.getElementById("admGateIn").value) || 0;
+    const descarga_puerto = parseFloat(document.getElementById("admDescargaPuerto").value) || 0;
+    const comision_aduana = parseFloat(document.getElementById("admComisionAduana").value) || 0;
+    const gastos_operativos = parseFloat(document.getElementById("admGastosOperativos").value) || 0;
     
-    document.getElementById("resIndFlete").textContent = formatCurrency(flete, "USD");
-    document.getElementById("resIndSeguro").textContent = formatCurrency(seguro, "USD");
-    document.getElementById("resIndCif").textContent = formatCurrency(cif, "USD");
-    document.getElementById("resIndAdvalorem").textContent = formatCurrency(advalorem, "USD");
-    document.getElementById("resIndIgvIpm").textContent = formatCurrency(igvIpm, "USD");
-    document.getElementById("resIndGastosLocales").textContent = formatCurrency(gastosLocales, "USD");
-    document.getElementById("resIndPercepcionVal").textContent = formatCurrency(percepcion, "USD");
-    document.getElementById("resIndCajaTotal").textContent = formatCurrency(cajaTotal, "USD");
+    const arancel_rate = parseFloat(document.getElementById("admArancel").value) || 0;
+    const percepcion_rate = parseFloat(document.getElementById("admPercepcion").value) || 0;
+    const tc = parseFloat(document.getElementById("admTipoCambio").value) || 3.78;
 
-    // Update chart
-    updateIndividualChart(fob, flete, seguro, advalorem, gastosLocales);
+    // 3. Flete Internacional Base Calculation (with weight/volume minimums / flat rates)
+    let flete_base = 0;
+    if (transporte === "maritimo") {
+        // Minimums: 1 CBM and 1 Ton (1000 kg)
+        const cbm_calculado = Math.max(cbm, 1.0);
+        const peso_calculado_tn = Math.max(peso_kg, 1000.0) / 1000.0; // Convert to tons
+        flete_base = Math.max(cbm_calculado, peso_calculado_tn) * flete_tarifa_cbm;
+        
+        // Update info text
+        document.getElementById("indTarifaInfo").textContent = `Tarifa LCL: $${flete_tarifa_cbm.toFixed(2)} / CBM o Ton`;
+    } else if (transporte === "maritimo_fcl") {
+        // Flat rate per container
+        flete_base = flete_tarifa_fcl;
+        
+        // Update info text
+        document.getElementById("indTarifaInfo").textContent = `Tarifa FCL Flat: $${flete_tarifa_fcl.toFixed(2)} / Contenedor`;
+    } else {
+        // Air freight: peso_kg * rate
+        flete_base = peso_kg * flete_aereo_rate;
+        
+        // Update info text
+        document.getElementById("indTarifaInfo").textContent = `Tarifa Aérea: $${flete_aereo_rate.toFixed(2)} / kg`;
+    }
+
+    // 4. Apply Origin Recargo
+    let recargo_factor = 1.0;
+    let recargo_text = "Recargo flete: Ninguno (+0%)";
+    if (origen === "europa") {
+        recargo_factor = 1.2;
+        recargo_text = "Recargo flete: +20% (Europa)";
+    } else if (origen === "eeuu") {
+        recargo_factor = 1.1;
+        recargo_text = "Recargo flete: +10% (EEUU)";
+    }
+    document.getElementById("indOrigenInfo").textContent = recargo_text;
+    
+    let flete_comercial = flete_base * recargo_factor;
+
+    // 5. FOB Aduanero Calculation
+    let fob = mercancia;
+    if (incoterm === "EXW") {
+        // Under EXW, origin expenses (BL Fee + Pick Up + Origin) are added to FOB
+        fob = mercancia + bl_fee + pick_up + gastos_origen;
+    }
+
+    // 6. Flete Internacional Aduanero
+    let flete_aduanero = 0;
+    if (incoterm === "EXW" || incoterm === "FOB") {
+        flete_aduanero = flete_comercial;
+    } else {
+        flete_comercial = 0; // Pre-paid in CIF
+    }
+
+    // 7. Seguro de Aduanas (1.5% of FOB)
+    let seguro_aduanero = 0;
+    if (incoterm === "EXW" || incoterm === "FOB") {
+        seguro_aduanero = fob * 0.015;
+    }
+
+    // 8. Valor CIF (Base Imponible)
+    const cif = fob + flete_aduanero + seguro_aduanero;
+
+    // 9. Impuestos de Aduana (SUNAT)
+    const arancel = cif * arancel_rate;
+    const igv = (cif + arancel) * 0.16;
+    const ipm = (cif + arancel) * 0.02;
+    const derechos_aduaneros = arancel + igv + ipm;
+    
+    const base_percepcion = cif + derechos_aduaneros;
+    const percepcion = base_percepcion * percepcion_rate;
+    const impuestos_totales = derechos_aduaneros + percepcion;
+
+    // 10. Servicios Logísticos MSI
+    const bl_fee_comercial = (incoterm === "EXW") ? bl_fee : 0;
+    const pick_up_comercial = (incoterm === "EXW") ? pick_up : 0;
+    const gastos_origen_comercial = (incoterm === "EXW") ? gastos_origen : 0;
+
+    // Conditional local services depending on transport
+    let doc_fee_comercial = 0;
+    let descarga_comercial = 0;
+    let visto_bueno_lcl_comercial = 0;
+    let almacenaje_lcl_comercial = 0;
+    
+    let visto_bueno_fcl_comercial = 0;
+    let gate_in_fcl_comercial = 0;
+    let descarga_puerto_fcl_comercial = 0;
+
+    if (transporte === "maritimo") {
+        doc_fee_comercial = doc_fee;
+        const peso_tn = peso_kg / 1000.0;
+        descarga_comercial = descarga_tarifa_tn * Math.max(peso_tn, 1.0);
+        visto_bueno_lcl_comercial = visto_bueno;
+        almacenaje_lcl_comercial = almacenaje_verde;
+    } else if (transporte === "maritimo_fcl") {
+        doc_fee_comercial = doc_fee;
+        visto_bueno_fcl_comercial = visto_bueno_linea;
+        gate_in_fcl_comercial = gate_in;
+        descarga_puerto_fcl_comercial = descarga_puerto;
+    }
+
+    // Separate services by taxability (under Peruvian law)
+    const servicios_origen_total = bl_fee_comercial + pick_up_comercial + gastos_origen_comercial;
+    
+    // Services gravados (local in Peru)
+    const servicios_destino_gravados = seguro_comercial + doc_fee_comercial + descarga_comercial + visto_bueno_lcl_comercial +
+                                      transporte_interno + comision_aduana + gastos_operativos +
+                                      almacenaje_lcl_comercial + visto_bueno_fcl_comercial + gate_in_fcl_comercial + descarga_puerto_fcl_comercial;
+                                      
+    const igv_servicios = servicios_destino_gravados * 0.18;
+    const total_servicios_sin_igv = flete_comercial + servicios_origen_total + servicios_destino_gravados;
+    const servicios_logicos_totales = total_servicios_sin_igv + igv_servicios;
+
+    const costo_total = mercancia + impuestos_totales + servicios_logicos_totales;
+
+    // 11b. Costo Unitario & Precio Sugerido
+    const unit_landed = costo_total / cantidad;
+    const price_net = margen_comercial < 100 ? (unit_landed / (1 - (margen_comercial / 100))) : unit_landed;
+
+    // Update unit analysis elements
+    document.getElementById("resUnitLandedUsd").textContent = formatCurrency(unit_landed, "USD");
+    document.getElementById("resUnitLandedPen").textContent = formatCurrency(unit_landed * tc, "PEN");
+    document.getElementById("resUnitPriceUsd").textContent = formatCurrency(price_net, "USD");
+    document.getElementById("resUnitPricePen").textContent = formatCurrency(price_net * tc, "PEN");
+
+    // 12. Update UI Summary Card and Pills
+    document.getElementById("resTotalImportacionUsd").textContent = formatCurrency(costo_total, "USD");
+    document.getElementById("resTotalImportacionPen").textContent = formatCurrency(costo_total * tc, "PEN");
+
+    document.getElementById("resPillMercancia").textContent = formatCurrency(mercancia, "USD");
+    document.getElementById("resPillImpuestos").textContent = formatCurrency(impuestos_totales, "USD");
+    document.getElementById("resPillServicios").textContent = formatCurrency(servicios_logicos_totales, "USD");
+
+    // 13. Update Detailed Breakdown list
+    document.getElementById("resIndFob").textContent = formatCurrency(fob, "USD");
+    document.getElementById("resIndFlete").textContent = formatCurrency(flete_aduanero, "USD");
+    document.getElementById("resIndSeguro").textContent = formatCurrency(seguro_aduanero, "USD");
+    document.getElementById("resIndCif").textContent = formatCurrency(cif, "USD");
+    document.getElementById("resIndAdvalorem").textContent = formatCurrency(arancel, "USD");
+    document.getElementById("resIndIgvIpm").textContent = formatCurrency(igv + ipm, "USD");
+    document.getElementById("resIndPercepcionVal").textContent = formatCurrency(percepcion, "USD");
+    
+    // Services details
+    document.getElementById("resIndServiciosOrigen").textContent = formatCurrency(servicios_origen_total, "USD");
+    document.getElementById("resIndServiciosFlete").textContent = formatCurrency(flete_comercial, "USD");
+    document.getElementById("resIndServiciosDestino").textContent = formatCurrency(servicios_destino_gravados, "USD");
+    document.getElementById("resIndServiciosIgv").textContent = formatCurrency(igv_servicios, "USD");
+    document.getElementById("resIndServiciosTotal").textContent = formatCurrency(servicios_logicos_totales, "USD");
+
+    // 14. Populate Printable PDF Proforma
+    document.getElementById("pdfClienteNombre").textContent = document.getElementById("indCliente").value || "Raúl Bardales";
+    document.getElementById("pdfProducto").textContent = document.getElementById("indProducto").value || "Motor Eléctrico Industrial + Accesorios";
+    
+    // Format transport text
+    let transportText = "Marítimo LCL";
+    if (transporte === "maritimo_fcl") {
+        transportText = "Marítimo FCL";
+    } else if (transporte === "aereo") {
+        transportText = "Aéreo (Carga)";
+    }
+    document.getElementById("pdfTransporte").textContent = transportText;
+    document.getElementById("pdfIncoterm").textContent = incoterm;
+    
+    // Format origin text
+    let originText = "Qingdao / Callao";
+    if (origen === "eeuu") originText = "Miami (EEUU) / Callao";
+    else if (origen === "europa") originText = "Rotterdam (Europa) / Callao";
+    else if (origen === "otros") originText = "Origen Internacional / Callao";
+    document.getElementById("pdfOrigen").textContent = originText;
+    
+    document.getElementById("pdfPeso").textContent = `${peso_kg.toFixed(1)} kg`;
+    document.getElementById("pdfVolumen").textContent = `${cbm.toFixed(2)} CBM`;
+    
+    // Tax details (SUNAT)
+    document.getElementById("pdfValorFob").textContent = formatCurrency(fob, "USD");
+    document.getElementById("pdfFleteAduanero").textContent = formatCurrency(flete_aduanero, "USD");
+    document.getElementById("pdfSeguroAduanero").textContent = formatCurrency(seguro_aduanero, "USD");
+    document.getElementById("pdfValorCif").textContent = formatCurrency(cif, "USD");
+    document.getElementById("pdfAdvalorem").textContent = formatCurrency(arancel, "USD");
+    document.getElementById("pdfIgv").textContent = formatCurrency(igv, "USD");
+    document.getElementById("pdfIpm").textContent = formatCurrency(ipm, "USD");
+    document.getElementById("pdfTotalDerechosAduana").textContent = formatCurrency(derechos_aduaneros, "USD");
+    document.getElementById("pdfPercepcion").textContent = formatCurrency(percepcion, "USD");
+    document.getElementById("pdfTotalAduana").textContent = formatCurrency(impuestos_totales, "USD");
+    
+    // Services details (MSI)
+    document.getElementById("pdfServFlete").textContent = formatCurrency(flete_comercial, "USD");
+    document.getElementById("pdfServBl").textContent = formatCurrency(bl_fee_comercial, "USD");
+    document.getElementById("pdfServPickUp").textContent = formatCurrency(pick_up_comercial, "USD");
+    document.getElementById("pdfServOrigen").textContent = formatCurrency(gastos_origen_comercial, "USD");
+    document.getElementById("pdfServSeguro").textContent = formatCurrency(seguro_comercial, "USD");
+    document.getElementById("pdfServDoc").textContent = formatCurrency(doc_fee_comercial, "USD");
+    document.getElementById("pdfServDescargaLcl").textContent = formatCurrency(descarga_comercial, "USD");
+    document.getElementById("pdfServVbLcl").textContent = formatCurrency(visto_bueno_lcl_comercial, "USD");
+    document.getElementById("pdfServTranspInterno").textContent = formatCurrency(transporte_interno, "USD");
+    document.getElementById("pdfServAlmacenaje").textContent = formatCurrency(almacenaje_lcl_comercial, "USD");
+    document.getElementById("pdfServVbFcl").textContent = formatCurrency(visto_bueno_fcl_comercial, "USD");
+    document.getElementById("pdfServGateIn").textContent = formatCurrency(gate_in_fcl_comercial, "USD");
+    document.getElementById("pdfServDescargaPuerto").textContent = formatCurrency(descarga_puerto_fcl_comercial, "USD");
+    document.getElementById("pdfServComision").textContent = formatCurrency(comision_aduana, "USD");
+    document.getElementById("pdfServGastosOp").textContent = formatCurrency(gastos_operativos, "USD");
+    document.getElementById("pdfServIgv").textContent = formatCurrency(igv_servicios, "USD");
+    document.getElementById("pdfServTotal").textContent = formatCurrency(servicios_logicos_totales, "USD");
+    
+    // Grand summary
+    document.getElementById("pdfResumenMercancia").textContent = formatCurrency(mercancia, "USD");
+    document.getElementById("pdfResumenImpuestos").textContent = formatCurrency(impuestos_totales, "USD");
+    document.getElementById("pdfResumenServicios").textContent = formatCurrency(servicios_logicos_totales, "USD");
+    document.getElementById("pdfResumenTotalUsd").textContent = formatCurrency(costo_total, "USD");
+    document.getElementById("pdfResumenTotalPen").textContent = formatCurrency(costo_total * tc, "PEN");
+
+    // 15. Refresh visual Chart
+    updateIndividualChart(mercancia, impuestos_totales, servicios_logicos_totales);
 }
 
-function updateIndividualChart(fob, flete, seguro, advalorem, gastosLocales) {
-    const ctx = document.getElementById("indChart").getContext("2d");
+// --------------------------------------------------------------------------
+// PRINT PDF TRIGGER
+// --------------------------------------------------------------------------
+function printPdf() {
+    // Generate dates dynamically
+    const today = new Date();
+    const expiry = new Date();
+    expiry.setDate(today.getDate() + 15);
     
-    const chartData = [fob, flete, seguro, advalorem, gastosLocales];
-    const chartLabels = ["Valor FOB", "Flete Internacional", "Seguro de Aduana", "Derechos Arancelarios", "Gastos Locales Despacho"];
+    const formatDate = (date) => {
+        const dd = String(date.getDate()).padStart(2, '0');
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const yyyy = date.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    };
+    
+    document.getElementById("pdfFecha").textContent = formatDate(today);
+    document.getElementById("pdfVence").textContent = formatDate(expiry);
+    
+    // Generate random quote number if not set or just a new one for unique printouts
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    document.getElementById("pdfCotizacionNum").textContent = `MSI-${today.getFullYear()}-J${randomNum}`;
+    
+    // Trigger print dialog
+    window.print();
+}
+
+// --------------------------------------------------------------------------
+// TOGGLE DARK MODE
+// --------------------------------------------------------------------------
+function toggleDarkMode() {
+    document.body.classList.toggle("dark-mode");
+    const isDark = document.body.classList.contains("dark-mode");
+    localStorage.setItem("darkMode", isDark ? "enabled" : "disabled");
+    
+    // Update toggle icon
+    const icon = document.querySelector("#btnToggleDark i");
+    if (icon) {
+        if (isDark) {
+            icon.className = "fa-solid fa-sun";
+        } else {
+            icon.className = "fa-solid fa-moon";
+        }
+    }
+    
+    // Recalculate to redraw chart with dynamic colors
+    calculateIndividual();
+}
+
+// --------------------------------------------------------------------------
+// CHART RENDERER
+// --------------------------------------------------------------------------
+function updateIndividualChart(mercancia, impuestos, servicios) {
+    const canvas = document.getElementById("indChart");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    
+    const chartData = [mercancia, impuestos, servicios];
+    const chartLabels = ["Mercadería", "Impuestos SUNAT", "Servicios MSI"];
+    
+    const isDark = document.body.classList.contains("dark-mode");
+    const mercaderiaColor = isDark ? "#3b82f6" : "#111827"; // Light Blue in dark mode, charcoal in light mode
+    const chartBorderColor = isDark ? "#111827" : "#ffffff";
+    const legendColor = isDark ? "#f3f4f6" : "#4b5563";
     
     if (indChartInstance) {
         indChartInstance.data.datasets[0].data = chartData;
+        indChartInstance.data.datasets[0].backgroundColor[0] = mercaderiaColor;
+        indChartInstance.data.datasets[0].borderColor = chartBorderColor;
+        indChartInstance.options.plugins.legend.labels.color = legendColor;
         indChartInstance.update();
     } else {
         indChartInstance = new Chart(ctx, {
@@ -225,14 +396,12 @@ function updateIndividualChart(fob, flete, seguro, advalorem, gastosLocales) {
                 datasets: [{
                     data: chartData,
                     backgroundColor: [
-                        '#111827', // FOB (Charcoal Black)
-                        '#dc2626', // Flete (MSI Red)
-                        '#f87171', // Seguro (Light Coral Red)
-                        '#4b5563', // Arancel (Medium Gray)
-                        '#9ca3af'  // Gastos Locales (Light Gray)
+                        mercaderiaColor,
+                        '#dc2626', // Impuestos SUNAT (MSI/SUNAT Crimson Red)
+                        '#ecc94b'  // Servicios MSI (Gold/Yellow)
                     ],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
+                    borderWidth: 2,
+                    borderColor: chartBorderColor
                 }]
             },
             options: {
@@ -240,7 +409,17 @@ function updateIndividualChart(fob, flete, seguro, advalorem, gastosLocales) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false
+                        position: 'bottom',
+                        labels: {
+                            color: legendColor,
+                            font: {
+                                family: "'Outfit', sans-serif",
+                                size: 11,
+                                weight: '600'
+                            },
+                            boxWidth: 12,
+                            padding: 8
+                        }
                     },
                     tooltip: {
                         callbacks: {
@@ -262,293 +441,6 @@ function updateIndividualChart(fob, flete, seguro, advalorem, gastosLocales) {
 }
 
 // --------------------------------------------------------------------------
-// MULTI-PRODUCT PRORATING LOGIC
-// --------------------------------------------------------------------------
-function renderProductRows() {
-    const tbody = document.getElementById("tableBodyProducts");
-    tbody.innerHTML = "";
-
-    products.forEach((product, index) => {
-        const tr = document.createElement("tr");
-        tr.id = `row-${product.id}`;
-        
-        tr.innerHTML = `
-            <td class="col-actions">
-                <button type="button" class="btn-delete" onclick="removeProductRow(${product.id})" title="Eliminar Producto">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
-            </td>
-            <td class="col-sku">
-                <input type="text" class="table-input" value="${product.sku}" oninput="updateProductField(${product.id}, 'sku', this.value)">
-            </td>
-            <td class="col-desc">
-                <input type="text" class="table-input" value="${product.description}" oninput="updateProductField(${product.id}, 'description', this.value)">
-            </td>
-            <td class="col-qty">
-                <input type="number" class="table-input num-input" value="${product.qty}" min="1" step="1" oninput="updateProductField(${product.id}, 'qty', parseInt(this.value) || 0)">
-            </td>
-            <td class="col-fob">
-                <input type="number" class="table-input num-input" value="${product.fobUnit}" min="0" step="0.01" oninput="updateProductField(${product.id}, 'fobUnit', parseFloat(this.value) || 0)">
-            </td>
-            <td class="col-peso">
-                <input type="number" class="table-input num-input" value="${product.pesoUnit}" min="0" step="0.01" oninput="updateProductField(${product.id}, 'pesoUnit', parseFloat(this.value) || 0)">
-            </td>
-            <td class="col-vol">
-                <input type="number" class="table-input num-input" value="${product.volUnit}" min="0" step="0.0001" oninput="updateProductField(${product.id}, 'volUnit', parseFloat(this.value) || 0)">
-            </td>
-            <td class="col-arancel">
-                <select class="table-input" onchange="updateProductField(${product.id}, 'arancel', parseFloat(this.value) || 0)">
-                    <option value="0.00" ${product.arancel === 0.00 ? 'selected' : ''}>0%</option>
-                    <option value="0.04" ${product.arancel === 0.04 ? 'selected' : ''}>4%</option>
-                    <option value="0.06" ${product.arancel === 0.06 ? 'selected' : ''}>6%</option>
-                    <option value="0.11" ${product.arancel === 0.11 ? 'selected' : ''}>11%</option>
-                </select>
-            </td>
-            <td class="col-margen">
-                <input type="number" class="table-input num-input" value="${product.margen}" min="0" max="99" step="1" oninput="updateProductField(${product.id}, 'margen', parseInt(this.value) || 0)">
-            </td>
-            <td class="col-fob-tot text-right" id="rowFobTotal-${product.id}">$0.00</td>
-            <td class="col-cost-unit text-right highlighted-col" id="rowCostoUnitUsd-${product.id}">$0.00</td>
-            <td class="col-venta text-right highlighted-col" id="rowPrecioVentaPen-${product.id}">S/. 0.00</td>
-            <td class="col-util text-right" id="rowUtilidadUsd-${product.id}">$0.00</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function addProductRow() {
-    const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-    products.push({
-        id: newId,
-        sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
-        description: "Nuevo Producto Importado",
-        qty: 100,
-        fobUnit: 10.00,
-        pesoUnit: 0.5,
-        volUnit: 0.005,
-        arancel: 0.06,
-        margen: 30
-    });
-    renderProductRows();
-    calculateProrrateo();
-}
-
-function removeProductRow(id) {
-    if (products.length <= 1) {
-        alert("Debe mantener al menos un producto en el cuadro de costeo.");
-        return;
-    }
-    products = products.filter(p => p.id !== id);
-    renderProductRows();
-    calculateProrrateo();
-}
-
-function updateProductField(id, field, value) {
-    const product = products.find(p => p.id === id);
-    if (product) {
-        product[field] = value;
-        // Silent recalculation to keep the UI snappy
-        calculateProrrateo();
-    }
-}
-
-function calculateProrrateo() {
-    // Get general global invoices and settings
-    const fleteTotalFactura = parseFloat(document.getElementById("proFleteFactura").value) || 0;
-    const seguroTotalFactura = parseFloat(document.getElementById("proSeguroFactura").value) || 0;
-    const gastosLocalesFactura = parseFloat(document.getElementById("proGastosLocales").value) || 0;
-    const metodoProrrateoFlete = document.getElementById("proMetodoFlete").value;
-    const percepcionTasa = parseFloat(document.getElementById("proPercepcionTasa").value) || 0;
-    const tc = parseFloat(document.getElementById("proTipoCambio").value) || 3.78;
-
-    // Totals counters
-    let sumQty = 0;
-    let sumPesoTotal = 0;
-    let sumVolumenTotal = 0;
-    let sumFobTotal = 0;
-
-    // Step 1: Pre-calculate sums of inputs for allocation denominators
-    products.forEach(p => {
-        const pFobTotal = p.qty * p.fobUnit;
-        const pPesoTotal = p.qty * p.pesoUnit;
-        const pVolumenTotal = p.qty * p.volUnit;
-
-        sumQty += p.qty;
-        sumPesoTotal += pPesoTotal;
-        sumVolumenTotal += pVolumenTotal;
-        sumFobTotal += pFobTotal;
-
-        // Display subtotal FOB inside row
-        const fobTotalEl = document.getElementById(`rowFobTotal-${p.id}`);
-        if (fobTotalEl) fobTotalEl.textContent = formatCurrency(pFobTotal, "USD");
-    });
-
-    // Handle case when sum is 0 to prevent division by zero
-    const denominatorFob = sumFobTotal || 1;
-    const denominatorPeso = sumPesoTotal || 1;
-    const denominatorVol = sumVolumenTotal || 1;
-
-    // Totals counters for outputs
-    let sumFleteAsig = 0;
-    let sumSeguroAsig = 0;
-    let sumCifTotal = 0;
-    let sumAdvaloremTotal = 0;
-    let sumGastosLocalesTotal = 0;
-    let sumCostoAlmacenTotal = 0;
-    let sumUtilidadTotal = 0;
-    let sumIgvIpmTotal = 0;
-    let sumPercepcionTotal = 0;
-
-    // Step 2: Loop and calculate allocation per product row
-    products.forEach(p => {
-        const pFobTotal = p.qty * p.fobUnit;
-        const pPesoTotal = p.qty * p.pesoUnit;
-        const pVolumenTotal = p.qty * p.volUnit;
-
-        // 1. Flete allocation
-        let pFlete = 0;
-        if (metodoProrrateoFlete === "peso") {
-            pFlete = (pPesoTotal / denominatorPeso) * fleteTotalFactura;
-        } else if (metodoProrrateoFlete === "volumen") {
-            pFlete = (pVolumenTotal / denominatorVol) * fleteTotalFactura;
-        } else {
-            pFlete = (pFobTotal / denominatorFob) * fleteTotalFactura;
-        }
-
-        // 2. Seguro allocation (prorated by FOB value ratio)
-        const pSeguro = (pFobTotal / denominatorFob) * seguroTotalFactura;
-
-        // 3. CIF Total
-        const pCif = pFobTotal + pFlete + pSeguro;
-
-        // 4. Ad-Valorem
-        const pAdvalorem = pCif * p.arancel;
-
-        // 5. Local Brokerage/despacho expenses allocation (prorated by FOB ratio)
-        const pGastosLocales = (pFobTotal / denominatorFob) * gastosLocalesFactura;
-
-        // 6. Costo Almacén Total & Unit
-        const pCostoAlmacen = pCif + pAdvalorem + pGastosLocales;
-        const pCostoUnitUsd = p.qty > 0 ? (pCostoAlmacen / p.qty) : 0;
-
-        // 7. IGV + IPM (18% of CIF + AdValorem)
-        const pBaseImpuestos = pCif + pAdvalorem;
-        const pIgvIpm = pBaseImpuestos * 0.18;
-
-        // 8. Percepción IGV SUNAT
-        const pPercepcion = (pBaseImpuestos + pIgvIpm) * percepcionTasa;
-
-        // 9. Pricing Suggestion
-        const pPrecioVentaUsd = p.margen < 100 ? (pCostoUnitUsd / (1 - (p.margen / 100))) : pCostoUnitUsd;
-        const pPrecioVentaPen = pPrecioVentaUsd * tc;
-
-        // 10. Estimated Profit
-        const pUtilidad = (pPrecioVentaUsd - pCostoUnitUsd) * p.qty;
-
-        // Accumulate totals
-        sumFleteAsig += pFlete;
-        sumSeguroAsig += pSeguro;
-        sumCifTotal += pCif;
-        sumAdvaloremTotal += pAdvalorem;
-        sumGastosLocalesTotal += pGastosLocales;
-        sumCostoAlmacenTotal += pCostoAlmacen;
-        sumUtilidadTotal += pUtilidad;
-        sumIgvIpmTotal += pIgvIpm;
-        sumPercepcionTotal += pPercepcion;
-
-        // Render calculated row values in the table cells
-        const costUnitEl = document.getElementById(`rowCostoUnitUsd-${p.id}`);
-        if (costUnitEl) costUnitEl.textContent = formatCurrency(pCostoUnitUsd, "USD");
-
-        const salePenEl = document.getElementById(`rowPrecioVentaPen-${p.id}`);
-        if (salePenEl) salePenEl.textContent = formatCurrency(pPrecioVentaPen, "PEN");
-
-        const utilUsdEl = document.getElementById(`rowUtilidadUsd-${p.id}`);
-        if (utilUsdEl) utilUsdEl.textContent = formatCurrency(pUtilidad, "USD");
-    });
-
-    // Step 3: Update Table Footer Totals
-    document.getElementById("totQty").textContent = formatQty(sumQty);
-    document.getElementById("totPeso").textContent = sumPesoTotal.toFixed(2) + " kg";
-    document.getElementById("totVol").textContent = sumVolumenTotal.toFixed(3) + " CBM";
-    document.getElementById("totFob").textContent = formatCurrency(sumFobTotal, "USD");
-    document.getElementById("totUtil").textContent = formatCurrency(sumUtilidadTotal, "USD");
-
-    // Step 4: Update Global Summary Panels
-    document.getElementById("sumFob").textContent = formatCurrency(sumFobTotal, "USD");
-    document.getElementById("sumFlete").textContent = formatCurrency(sumFleteAsig, "USD");
-    document.getElementById("sumSeguro").textContent = formatCurrency(sumSeguroAsig, "USD");
-    document.getElementById("sumCif").textContent = formatCurrency(sumCifTotal, "USD");
-    document.getElementById("sumAdvalorem").textContent = formatCurrency(sumAdvaloremTotal, "USD");
-    document.getElementById("sumGastosLocales").textContent = formatCurrency(sumGastosLocalesTotal, "USD");
-    document.getElementById("sumCostoAlmacen").textContent = formatCurrency(sumCostoAlmacenTotal, "USD");
-
-    document.getElementById("sumIgvIpm").textContent = formatCurrency(sumIgvIpmTotal, "USD");
-    document.getElementById("sumPercepcion").textContent = formatCurrency(sumPercepcionTotal, "USD");
-    
-    // Total cash outlay (Costo Almacen + taxes)
-    const totalCajaGlobal = sumCostoAlmacenTotal + sumIgvIpmTotal + sumPercepcionTotal;
-    document.getElementById("sumCajaTotal").textContent = formatCurrency(totalCajaGlobal, "USD");
-    document.getElementById("sumUtilidad").textContent = formatCurrency(sumUtilidadTotal, "USD");
-
-    // Update global doughnut chart
-    updateMultiChart(sumFobTotal, sumFleteAsig, sumSeguroAsig, sumAdvaloremTotal, sumGastosLocalesTotal);
-}
-
-function updateMultiChart(fob, flete, seguro, advalorem, gastosLocales) {
-    const ctx = document.getElementById("multiChart").getContext("2d");
-    
-    const chartData = [fob, flete, seguro, advalorem, gastosLocales];
-    const chartLabels = ["FOB", "Flete", "Seguro", "Aranceles", "Gastos Locales"];
-    
-    if (multiChartInstance) {
-        multiChartInstance.data.datasets[0].data = chartData;
-        multiChartInstance.update();
-    } else {
-        multiChartInstance = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    data: chartData,
-                    backgroundColor: [
-                        '#111827', // FOB (Charcoal Black)
-                        '#dc2626', // Flete (MSI Red)
-                        '#f87171', // Seguro (Light Coral Red)
-                        '#4b5563', // Arancel (Medium Gray)
-                        '#9ca3af'  // Gastos Locales (Light Gray)
-                    ],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                label += formatCurrency(context.raw, "USD");
-                                return label;
-                            }
-                        }
-                    }
-                },
-                cutout: '60%'
-            }
-        });
-    }
-}
-
-// --------------------------------------------------------------------------
 // HELPER UTILITIES
 // --------------------------------------------------------------------------
 function formatCurrency(val, currency = "USD") {
@@ -562,10 +454,4 @@ function formatCurrency(val, currency = "USD") {
     } else {
         return `S/ ${formatted}`;
     }
-}
-
-function formatQty(val) {
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0
-    }).format(val);
 }

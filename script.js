@@ -1770,11 +1770,11 @@ function exportExcelProducts() {
     ws['!cols'] = [
         { wch: 6 },  // A: No.
         { wch: 35 }, // B: DESCRIPTION
-        { wch: 15 }, // C: Product Image
-        { wch: 10 }, // D: QTY
-        { wch: 15 }, // E: EXW(USD)
-        { wch: 15 }, // F: AMOUNT
-        { wch: 25 }, // G: PRECIO UNITARIO (Visible)
+        { wch: 20 }, // C: Product Image
+        { wch: 13 }, // D: QTY
+        { wch: 30 }, // E: EXW(USD)
+        { wch: 30 }, // F: AMOUNT
+        { wch: 50 }, // G: PRECIO UNITARIO (Visible)
         { wch: 15, hidden: true }, // H: IMPUESTOS (Hidden)
         { wch: 22, hidden: true }, // I: SERVICIOS LOGISTICOS (Hidden)
         { wch: 18, hidden: true }, // J: PRECIO TOTAL (Hidden)
